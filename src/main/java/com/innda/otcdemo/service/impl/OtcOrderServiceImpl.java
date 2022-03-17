@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.support.atomic.RedisAtomicLong;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
@@ -98,8 +99,15 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         return str;
     }
 
+    /**
+     * 下单
+     * @param otcOrderInDto-订单入参
+     * @return
+     */
     @Override
-    public Long placeOrder(OtcOrderInDto ortoOrderInDto) {
+    @Transactional(rollbackFor = Exception.class)
+    public Long placeOrder(OtcOrderInDto otcOrderInDto) {
+
         return null;
     }
 
