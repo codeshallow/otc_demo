@@ -17,5 +17,6 @@ public interface AdvertisingMapper {
 
     int updateByPrimaryKey(Advertising record);
 
+    //悲观锁查询
     Advertising selectOneByLock(Integer id);
 }
