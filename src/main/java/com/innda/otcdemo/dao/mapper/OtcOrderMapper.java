@@ -28,5 +28,6 @@ public interface OtcOrderMapper {
 
     List<OtcOrder> getOrderByStatus(Byte state);
 
+    //取消批量更新订单
     //public int updateBatchOrders(List<OtcOrder> otcOrderList);
 }
