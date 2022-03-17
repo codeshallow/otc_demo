@@ -3,16 +3,24 @@ package com.innda.otcdemo.service.impl;
 import com.github.pagehelper.PageInfo;
 import com.innda.otcdemo.dao.mapper.AdvertisingMapper;
 import com.innda.otcdemo.dao.mapper.OtcOrderMapper;
+import com.innda.otcdemo.dao.mapper.PaymentTypeMapper;
 import com.innda.otcdemo.dao.mapper.UserGsonMapper;
 import com.innda.otcdemo.dao.model.OtcOrder;
 import com.innda.otcdemo.indto.*;
 import com.innda.otcdemo.outdto.OtcOrderDetailOutDto;
 import com.innda.otcdemo.service.OtcOrderService;
+import com.innda.otcdemo.service.SmsService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.support.atomic.RedisAtomicLong;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author qianyu
@@ -33,9 +41,61 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     @Resource
     private AdvertisingMapper advertisingMapper;
 
+    @Autowired
+    private PaymentTypeMapper paymentTypeMapper;
+
+    @Autowired
+    private SmsService smsService;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+
+    /**
+     * 获取唯一id
+     * @return
+     */
     @Override
     public Long getOrderNo() {
-        return null;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmm");
+        String newDate = sdf.format(new Date());
+        RedisAtomicLong entityIdCounter = new RedisAtomicLong("orderNo", stringRedisTemplate.getConnectionFactory());
+        Long increment = entityIdCounter.getAndIncrement();
+
+        //初始设置过期时间
+        if ((null == increment || increment.longValue() == 0)) {
+            entityIdCounter.expire(60, TimeUnit.SECONDS);
+        }
+
+        int max = 9999;
+        if (increment > max){
+            throw new RuntimeException("生产订单号失败");
+        }
+
+        String str = increment.toString();
+        str = addZeroLeft(str, 4);
+        return Long.valueOf(newDate + str);
+    }
+
+    /**
+     * 左补零
+     * @param str
+     * @param strlength
+     * @return
+     */
+    private static String addZeroLeft(String str, int strlength) {
+        int strLen = str.length();
+        if (strLen < strlength){
+            while (strLen < strlength) {
+                StringBuffer sb = new StringBuffer();
+                //左补零
+                sb.append("0").append(str);
+                str = sb.toString();
+                strLen = str.length();
+            }
+
+        }
+        return str;
     }
 
     @Override
