@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.innda.otcdemo.dao.mapper.OtcOrderMapper">
+    <resultMap id="BaseResultMap" type="com.innda.otcdemo.dao.model.OtcOrder">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="uid" jdbcType="INTEGER" property="uid"/>
+        <result column="advertising_uid" jdbcType="INTEGER" property="advertisingUid"/>
+        <result column="user_name" jdbcType="VARCHAR" property="userName"/>
+        <result column="advertising_id" jdbcType="INTEGER" property="advertisingId"/>
+        <result column="pay_type_id" jdbcType="INTEGER" property="payTypeId"/>
+        <result column="order_no" jdbcType="BIGINT" property="orderNo"/>
+        <result column="price" jdbcType="DECIMAL" property="price"/>
+        <result column="trade_amount" jdbcType="DECIMAL" property="tradeAmount"/>
+        <result column="token_amount" jdbcType="DECIMAL" property="tokenAmount"/>
+        <result column="order_at" jdbcType="TIMESTAMP" property="orderAt"/>
+        <result column="type" jdbcType="TINYINT" property="type"/>
+        <result column="state" jdbcType="TINYINT" property="state"/>
+        <result column="pay_at" jdbcType="TIMESTAMP" property="payAt"/>
+        <result column="release_at" jdbcType="TIMESTAMP" property="releaseAt"/>
+        <result column="cancel_at" jdbcType="TIMESTAMP" property="cancelAt"/>
+        <result column="complaint_at" jdbcType="TIMESTAMP" property="complaintAt"/>
+        <result column="handle_at" jdbcType="TIMESTAMP" property="handleAt"/>
+    </resultMap>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+        delete
+        from c_otc_order
+        where id = #{id,jdbcType=INTEGER}
+    </delete>
+
+    <insert id="insert" parameterType="com.innda.otcdemo.dao.model.OtcOrder">
+        insert into c_otc_order(id, uid, advertising_uid,
+                                user_name, advertising_id, pay_type_id,
+                                order_no, price, trade_amount,
+                                token_amount, order_at, type,
+                                state, pay_at, release_at,
+                                cancel_at, complaint_at, handle_at)
+        values (#{id,jdbcType=INTEGER}, #{uid,jdbcType=INTEGER}, #{advertisingUid,jdbcType=INTEGER},
+                #{userName,jdbcType=VARCHAR}, #{advertisingId,jdbcType=INTEGER}, #{payTypeId,jdbcType=INTEGER},
+                #{orderNo,jdbcType=BIGINT}, #{price,jdbcType=DECIMAL}, #{tradeAmount,jdbcType=DECIMAL},
+                #{tokenAmount,jdbcType=DECIMAL}, #{orderAt,jdbcType=TIMESTAMP}, #{type,jdbcType=TINYINT},
+                #{state,jdbcType=TINYINT}, #{payAt,jdbcType=TIMESTAMP}, #{releaseAt,jdbcType=TIMESTAMP},
+                #{cancelAt,jdbcType=TIMESTAMP}, #{complaintAt,jdbcType=TIMESTAMP}, #{handleAt,jdbcType=TIMESTAMP})
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select id,
+               uid,
+               advertising_uid,
+               user_name,
+               advertising_id,
+               pay_type_id,
+               order_no,
+               price,
+               trade_amount,
+               token_amount,
+               order_at,
+               type,
+               state,
+               pay_at,
+               release_at,
+               cancel_at,
+               complaint_at,
+               handle_at
+        from c_otc_order
+        where id = #{id,jdbcType=INTEGER}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        select id,
+               uid,
+               advertising_uid,
+               user_name,
+               advertising_id,
+               pay_type_id,
+               order_no,
+               price,
+               trade_amount,
+               token_amount,
+               order_at,
+               type,
+               state,
+               pay_at,
+               release_at,
+               cancel_at,
+               complaint_at,
+               handle_at
+        from c_toc_order
+    </select>
+
+    <update id="updateByPrimaryKey" parameterType="com.innda.otcdemo.dao.model.OtcOrder">
+        update c_otc_order
+        set uid             =#{uid,jdbcType=INTEGER},
+            advertising_uid = #{advertisingUid,jdbcType=INTEGER},
+            user_name       = #{userName,jdbcType=VARCHAR},
+            advertising_id  = #{advertisingId,jdbcType=INTEGER},
+            pay_type_id     = #{payTypeId,jdbcType=INTEGER},
+            order_no        = #{orderNo,jdbcType=BIGINT},
+            price           = #{price,jdbcType=DECIMAL},
+            trade_amount    = #{tradeAmount,jdbcType=DECIMAL},
+            token_amount    = #{tokenAmount,jdbcType=DECIMAL},
+            order_at        = #{orderAt,jdbcType=TIMESTAMP},
+            type            = #{type,jdbcType=TINYINT},
+            state           = #{state,jdbcType=TINYINT},
+            pay_at          = #{payAt,jdbcType=TIMESTAMP},
+            release_at      = #{releaseAt,jdbcType=TIMESTAMP},
+            cancel_at       = #{cancelAt,jdbcType=TIMESTAMP},
+            complaint_at    = #{complaintAt,jdbcType=TIMESTAMP},
+            handle_at       = #{handleAt,jdbcType=TIMESTAMP}
+        where id = #{id,jdbcType=INTEGER}
+    </update>
+
+    <!--根据条件分页查询订单-->
+    <select id="queryOrdersByCondition" parameterType="com.innda.otcdemo.indto.OrderSearchInDto"
+            resultMap="BaseResultMap">
+        select id,
+               uid,
+               advertising_uid,
+               user_name,
+               advertising_id,
+               pay_type_id,
+               order_no,
+               price,
+               trade_amount,
+               token_amount,
+               order_at,
+               type,
+               state,
+               pay_at,
+               release_at,
+               cancel_at,
+               complaint_at,
+               handle_at
+        from c_otc_order
+        where state = #{state,jdbcType=INTEGER}
+          and (uid = #{uid} or advertising_uid = #{uid})
+    </select>
+
+    <select id="getOrderByStatus" parameterType="java.lang.Byte" resultMap="BaseResultMap">
+        select id,
+               uid,
+               advertising_uid,
+               user_name,
+               advertising_id,
+               pay_type_id,
+               order_no,
+               price,
+               trade_amount,
+               token_amount,
+               order_at,
+               type,
+               state,
+               pay_at,
+               release_at,
+               cancel_at,
+               complaint_at,
+               handle_at
+        from c_otc_order
+        where state = #{state,jdbcType=TINYINT}
+    </select>
+
+    <!--批量更新-->
+    <!--    <update id="updateBatchOrders" parameterType="com.innda.otcdemo.dao.model.OtcOrder">-->
+    <!--        <foreach collection="list" item="item" index="index" open="" close="" separator=";">-->
+    <!--            update c_otc_order-->
+    <!--            <set>-->
+    <!--                <if test="item.state != null and item.state != 0">-->
+    <!--                    state = #{item.state,jdbcType=VARCHAR}-->
+    <!--                </if>-->
+    <!--            </set>-->
+    <!--            where id = #{item.id,jdbcType=INTEGER}-->
+    <!--        </foreach>-->
+    <!--    </update>-->
+
+    <select id="findOneOrderByLock" resultType="com.innda.otcdemo.dao.model.OtcOrder">
+        select id,
+               uid,
+               advertising_uid,
+               user_name,
+               advertising_id,
+               pay_type_id,
+               order_no,
+               price,
+               trade_amount,
+               token_amount,
+               order_at,
+               type,
+               state,
+               pay_at,
+               release_at,
+               cancel_at,
+               complaint_at,
+               handle_at
+        from c_otc_order
+        where id = #{id} for update
+    </select>
+
+    <select id="selectByOrderNo" resultType="com.innda.otcdemo.dao.model.OtcOrder">
+        select id,
+               uid,
+               advertising_uid,
+               user_name,
+               advertising_id,
+               pay_type_id,
+               order_no,
+               price,
+               trade_amount,
+               token_amount,
+               order_at,
+               type,
+               state,
+               pay_at,
+               release_at,
+               cancel_at,
+               complaint_at,
+               handle_at
+        from c_otc_order
+        where order_no = #{orderNo,jdbcType=BIGINT}
+    </select>
+
+    <select id="selectByUid" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select id,
+               uid,
+               advertising_uid,
+               user_name,
+               advertising_id,
+               pay_type_id,
+               order_no,
+               price,
+               trade_amount,
+               token_amount,
+               order_at,
+               type,
+               state,
+               pay_at,
+               release_at,
+               cancel_at,
+               complaint_at,
+               handle_at
+        from c_otc_order
+        where uid = #{uid,jdbcType=INTEGER}
+    </select>
+
+    <select id="selectByUidAndState" resultMap="BaseResultMap">
+        select id,
+               uid,
+               advertising_uid,
+               user_name,
+               advertising_id,
+               pay_type_id,
+               order_no,
+               price,
+               trade_amount,
+               token_amount,
+               order_at,
+               type,
+               state,
+               pay_at,
+               release_at,
+               cancel_at,
+               complaint_at,
+               handle_at
+        from c_otc_order
+                where state in
+        <foreach collection="states" close=")" item="state" open="(" separator=",">
+            #{state}
+        </foreach>
+        and (uid = #{uid,jdbcType=INTEGER} or advertising_uid = #{uid,jdbcType=INTEGER}) order by order_at desc
+    </select>
+</mapper>

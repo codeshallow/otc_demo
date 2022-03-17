@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.innda.otcdemo.dao.mapper.AdvertisingMapper">
+  <resultMap id="BaseResultMap" type="com.innda.otcdemo.dao.model.Advertising">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="uid" jdbcType="INTEGER" property="uid" />
+    <result column="type" jdbcType="TINYINT" property="type" />
+    <result column="state" jdbcType="TINYINT" property="state" />
+    <result column="total_amount" jdbcType="DECIMAL" property="totalAmount" />
+    <result column="remaining_amount" jdbcType="DECIMAL" property="remainingAmount" />
+    <result column="user_name" jdbcType="VARCHAR" property="userName" />
+    <result column="head_url" jdbcType="VARCHAR" property="headUrl" />
+    <result column="phone" jdbcType="VARCHAR" property="phone" />
+    <result column="price" jdbcType="DECIMAL" property="price" />
+    <result column="pub_at" jdbcType="TIMESTAMP" property="pubAt" />
+    <result column="min_amount" jdbcType="DECIMAL" property="minAmount" />
+    <result column="max_amount" jdbcType="DECIMAL" property="maxAmount" />
+    <result column="end_at" jdbcType="TIMESTAMP" property="endAt" />
+    <result column="enable_weixin" jdbcType="TINYINT" property="enableWeixin" />
+    <result column="enable_alipay" jdbcType="TINYINT" property="enableAlipay" />
+  </resultMap>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from c_advertising
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="cn.iinda.otc.dao.model.Advertising">
+    insert into c_advertising (id, uid, type, 
+      state, total_amount, remaining_amount, 
+      user_name, head_url, phone, 
+      price, pub_at, min_amount, 
+      max_amount, end_at, enable_weixin, 
+      enable_alipay)
+    values (#{id,jdbcType=INTEGER}, #{uid,jdbcType=INTEGER}, #{type,jdbcType=TINYINT}, 
+      #{state,jdbcType=TINYINT}, #{totalAmount,jdbcType=DECIMAL}, #{remainingAmount,jdbcType=DECIMAL}, 
+      #{userName,jdbcType=VARCHAR}, #{headUrl,jdbcType=VARCHAR}, #{phone,jdbcType=VARCHAR}, 
+      #{price,jdbcType=DECIMAL}, #{pubAt,jdbcType=TIMESTAMP}, #{minAmount,jdbcType=DECIMAL}, 
+      #{maxAmount,jdbcType=DECIMAL}, #{endAt,jdbcType=TIMESTAMP}, #{enableWeixin,jdbcType=TINYINT}, 
+      #{enableAlipay,jdbcType=TINYINT})
+  </insert>
+  <update id="updateByPrimaryKey" parameterType="cn.iinda.otc.dao.model.Advertising">
+    update c_advertising
+    set uid = #{uid,jdbcType=INTEGER},
+      type = #{type,jdbcType=TINYINT},
+      state = #{state,jdbcType=TINYINT},
+      total_amount = #{totalAmount,jdbcType=DECIMAL},
+      remaining_amount = #{remainingAmount,jdbcType=DECIMAL},
+      user_name = #{userName,jdbcType=VARCHAR},
+      head_url = #{headUrl,jdbcType=VARCHAR},
+      phone = #{phone,jdbcType=VARCHAR},
+      price = #{price,jdbcType=DECIMAL},
+      pub_at = #{pubAt,jdbcType=TIMESTAMP},
+      min_amount = #{minAmount,jdbcType=DECIMAL},
+      max_amount = #{maxAmount,jdbcType=DECIMAL},
+      end_at = #{endAt,jdbcType=TIMESTAMP},
+      enable_weixin = #{enableWeixin,jdbcType=TINYINT},
+      enable_alipay = #{enableAlipay,jdbcType=TINYINT}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select id, uid, type, state, total_amount, remaining_amount, user_name, head_url, 
+    phone, price, pub_at, min_amount, max_amount, end_at, enable_weixin, enable_alipay
+    from c_advertising
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <select id="selectAll" resultMap="BaseResultMap">
+    select id, uid, type, state, total_amount, remaining_amount, user_name, head_url, 
+    phone, price, pub_at, min_amount, max_amount, end_at, enable_weixin, enable_alipay
+    from c_advertising
+  </select>
+  <select id="selectByType" resultMap="BaseResultMap">
+   select id, uid, type, state, total_amount, remaining_amount, user_name, head_url,
+    phone, price, pub_at, min_amount, max_amount, end_at, enable_weixin, enable_alipay
+    from c_advertising
+    where type = #{id,jdbcType=TINYINT}
+  </select>
+
+  <!--悲观锁查询-->
+  <select id="selectOneByLock" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+  select id, uid, type, state, total_amount, remaining_amount, user_name, head_url,
+  phone, price, pub_at, min_amount, max_amount, end_at, enable_weixin, enable_alipay
+  from c_advertising
+  where id = #{id,jdbcType=INTEGER} for update
+  </select>
+</mapper>

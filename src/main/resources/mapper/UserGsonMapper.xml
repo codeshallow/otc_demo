@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.innda.otcdemo.dao.mapper.UserGsonMapper">
+    <resultMap id="BaseResultMap" type="com.innda.otcdemo.dao.model.UserGson">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="userPhone" jdbcType="VARCHAR" property="userphone"/>
+        <result column="voucher" jdbcType="DECIMAL" property="voucher"/>
+        <result column="createTime" jdbcType="TIMESTAMP" property="createtime"/>
+        <result column="updateTime" jdbcType="TIMESTAMP" property="updatetime"/>
+        <result column="tmpVoucher" jdbcType="DECIMAL" property="tmpvoucher"/>
+        <result column="password" jdbcType="VARCHAR" property="password"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="zdtNum" jdbcType="DECIMAL" property="zdtnum"/>
+        <result column="zdtLockNum" jdbcType="DECIMAL" property="zdtlocknum"/>
+        <result column="payPassword" jdbcType="VARCHAR" property="paypassword"/>
+        <result column="nickName" jdbcType="VARCHAR" property="nickname"/>
+    </resultMap>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+        delete
+        from t_user_gson
+        where id = #{id,jdbcType=INTEGER}
+    </delete>
+
+    <insert id="insert" parameterType="com.innda.otcdemo.dao.model.UserGson">
+        insert into t_user_gson (id, userPhone, voucher, createTime, updateTime, tmpVoucher, password, type, zdtNum,
+                                 zdtLockNum, payPassword, nickName)
+        values (#{id,jdbcType=INTEGER}, #{userphone,jdbcType=VARCHAR}, #{voucher,jdbcType=DECIMAL},
+                #{createtime,jdbcType=TIMESTAMP}, #{updatetime,jdbcType=TIMESTAMP}, #{tmpvoucher,jdbcType=DECIMAL},
+                #{password,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{zdtnum,jdbcType=DECIMAL},
+                #{zdtlocknum,jdbcType=DECIMAL}, #{paypassword,jdbcType=VARCHAR}, #{nickname,jdbcType=VARCHAR})
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select id,
+               userPhone,
+               voucher,
+               createTime,
+               updateTime,
+               tmpVoucher,
+               password,
+               type,
+               zdtNum,
+               zdtLockNum,
+               payPassword,
+               nickName
+        from t_user_gson
+        where id = #{id,jdbcType=INTEGER}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        select id,
+               userPhone,
+               voucher,
+               createTime,
+               updateTime,
+               tmpVoucher,
+               password,
+               type,
+               zdtNum,
+               zdtLockNum,
+               payPassword,
+               nickName
+        from t_user_gson
+    </select>
+
+    <update id="updatePayPassword">
+        update t_user_gson
+        set payPassword=#{pwd,jdbcType=VARCHAR}
+        where id = #{id}
+    </update>
+
+    <update id="updateByPrimaryKey" parameterType="com.innda.otcdemo.dao.model.UserGson">
+        update t_user_gson
+        set userPhone  =#{userphone,jdbcType=VARCHAR},
+            voucher=#{voucher,jdbcType=DECIMAL},
+            creatTime=#{createtime,jdbcType=TIMESTAMP},
+            updateTime=#{updatetime,jdbcType=TIMESTAMP},
+            tmpVoucher=#{tmpvoucher,jdbcType=DECIMAL},
+            password=#{password,jdbcType=VARCHAR},
+            type=#{type,jdbcType=VARCHAR},
+            zdtNum=#{zdtnum,jdbcType=DECIMAL},
+            zdtLockNum=#{zdtlocknum,jdbcType=DECIMAL},
+            payPassword=#{paypassword,jdbcType=VARCHAR},
+            nickName=#{nickname,jdbcType=VARCHAR}
+        where id = #{id,jdbcType=INTEGER}
+    </update>
+</mapper>

@@ -1,0 +1,56 @@
+server:
+  port: 8085
+spring:
+  application:
+    name: zdtotc
+  profiles:
+    active: dev
+  resources:
+    add-mappings: false
+  mvc:
+    favicon:
+      enabled: false
+    throw-exception-if-no-handler-found: true
+  ##配置Jackson时间格式转换
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      max-active: 20
+      initial-size: 10
+      filters: stat
+      max-wait: 60000
+      min-idle: 1
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: select 'x'
+      test-while-idle: true
+      test-on-return: false
+      test-on-borrow: false
+      pool-prepared-statements: true
+      max-open-prepared-statements: 20
+      connection-init-sqls: SET NAMES utf8mb4
+    jocq:
+      sql-dialect: org.hibernate.dialect.MySQLDialect
+mybatis:
+  mapper-locations: classpath:mapper/*.xml  #注意：一定要对应mapper映射xml文件的所在路径
+  type-aliases-package: cn.iinda.otc.dao.model
+  configuration:
+    cache-enabled: true # 全局映射器启用缓存
+    lazy-loading-enabled: true #查询时,关闭关联对象及时加载以提高性能
+    aggressive-lazy-loading: true #设置关联对象加载的形态,此处为按需加载字段(加载字段由SQL指定),不会加载关联表的所有字段,以提高性能
+    multiple-result-sets-enabled: true #对于位置的SQL查询,允许返回不同的结果集以达到通用的效果
+    use-column-label: true #允许使用列标签代替列明
+    use-generated-keys: true #允许使用自定义的主键值(比如由程序生成的UUID 32位编码作为键值), 数据表的pk生成策略将被覆盖
+    default-executor-type: reuse #对于批量更新操作缓存SQL以提高性能
+    auto-mapping-behavior: partial #给予被嵌套的resultMap以字段-属性的映射支持
+    default-statement-timeout: 25000 #数据库超过25000秒仍未响应则超时
+    map-underscore-to-camel-case: true #下划线字段转驼峰
+pagehelper:
+  auto-dialect: true
+  close-conn: true
+  offset-as-page-num: false
+  params: count(id)

@@ -1,0 +1,25 @@
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/DsellDB?characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&useAffectedRows=true
+    username: root
+    password: 123456
+  redis:
+    datasource: 0
+    host: 192.168.1.239
+    port: 6380
+    password: 123456
+    timeout: 5000ms
+lock-config:
+  pattern: single
+  single-server:
+    address: 192.168.1.239
+    password: 123456
+    port: 6380
+    database: 0
+sms:
+  bao:
+    username: shishi614
+    password: Xteam123sell

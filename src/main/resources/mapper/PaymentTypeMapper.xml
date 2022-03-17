@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.innda.otcdemo.dao.mapper.PaymentTypeMapper">
+    <resultMap id="BaseResultMap" type="com.innda.otcdemo.dao.model.PaymentType">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="uid" jdbcType="INTEGER" property="uid"/>
+        <result column="name" jdbcType="varchar" property="name"/>
+        <result column="account" jdbcType="VARCHAR" property="account"/>
+        <result column="qr_code_url" jdbcType="VARCHAR" property="qrCodeUrl"/>
+        <result column="type" jdbcType="TINYINT" property="type"/>
+        <result column="state" jdbcType="TINYINT" property="state"/>
+        <result column="create_at" jdbcType="TIMESTAMP" property="createAt"/>
+    </resultMap>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+        delete
+        from c_payment_type
+        where id = #{id,jdbcType=INTEGER}
+    </delete>
+
+    <insert id="insert" parameterType="com.innda.otcdemo.dao.model.PaymentType">
+        insert into c_payment_type (id, uid, name,
+                                    account, qr_code_url, type,
+                                    state, create_at)
+        values (#{id,jdbcType=INTEGER}, #{uid,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR},
+                #{account,jdbcType=VARCHAR}, #{qrCodeUrl,jdbcType=VARCHAR}, #{type,jdbcType=TINYINT},
+                #{state,jdbcType=TINYINT}, #{createAt,jdbcType=TIMESTAMP})
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select id,
+               uid,
+               name,
+               account,
+               qr_code_url,
+               type,
+               state,
+               create_at
+        from c_payment_type
+        where id = #{id,jdbcType=INTEGER}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        select id,
+               uid,
+               name,
+               account,
+               qr_code_url,
+               type,
+               state,
+               create_at
+        from c_payment_type
+    </select>
+
+    <update id="updateByPrimaryKey" parameterType="com.innda.otcdemo.dao.model.PaymentType">
+        update c_payment_type
+        set udi=#{uid,jdbcType=INTEGER},
+            name =#{name,jdbcType=VARCHAR},
+            account = #{account,jdbcType=VARCHAR},
+            qr_code_url = #{qrCodeUrl,jdbcType=VARCHAR},
+            type = #{type,jdbcType=TINYINT},
+            state = #{state,jdbcType=TINYINT},
+            create_at = #{createAt,jdbcType=TIMESTAMP}
+        where id = #{id,jdbcType=INTEGER} where id = =#{id,jdbcType=INTEGER}
+    </update>
+
+    <select id="selectByUid" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        select id,
+               uid,
+               name,
+               account,
+               qr_code_url,
+               type,
+               state,
+               create_at
+        from c_payment_type
+        where uid = #{uid,jdbcType=INTEGER}
+    </select>
+</mapper>
