@@ -59,6 +59,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 获取唯一id
+     *
      * @return
      */
     @Override
@@ -74,7 +75,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         }
 
         int max = 9999;
-        if (increment > max){
+        if (increment > max) {
             throw new RuntimeException("生产订单号失败");
         }
 
@@ -85,13 +86,14 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 左补零
+     *
      * @param str
      * @param strlength
      * @return
      */
     private static String addZeroLeft(String str, int strlength) {
         int strLen = str.length();
-        if (strLen < strlength){
+        if (strLen < strlength) {
             while (strLen < strlength) {
                 StringBuffer sb = new StringBuffer();
                 //左补零
@@ -106,6 +108,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 下单
+     *
      * @param otcOrderInDto-订单入参
      * @return
      */
@@ -121,13 +124,13 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         //获取广告信息，需要用悲观锁 for updata
         Advertising advertising = advertisingMapper.selectOneByLock(otcOrderInDto.getAdvertisingId());
         UserGson oneUserGson = userGsonMapper.findOneOrderByLock(advertising.getUid());
-        if (userId.equals(advertising.getUid())){
+        if (userId.equals(advertising.getUid())) {
             throw new RuntimeException("不能对自己的广告进行下单操作");
         }
 
         //判断下单金额是否合理
         BigDecimal tradeAmount = otcOrderInDto.getTradeAmount();
-        if (tradeAmount.compareTo(advertising.getMinAmount()) < 0){
+        if (tradeAmount.compareTo(advertising.getMinAmount()) < 0) {
             throw new RuntimeException("未达到下单最低限额，请调整下单金额后再试");
         }
         if (tradeAmount.compareTo(advertising.getMaxAmount()) > 0) {
@@ -137,18 +140,18 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         //判断商品是否充足
         BigDecimal remainingAmount = advertising.getRemainingAmount();
         BigDecimal price = advertising.getPrice();
-        BigDecimal tokenAmount = tradeAmount.divide(price,6,BigDecimal.ROUND_HALF_UP);
+        BigDecimal tokenAmount = tradeAmount.divide(price, 6, BigDecimal.ROUND_HALF_UP);
         OtcOrder otcOrder = new OtcOrder();
 
         //广告类型为1 即承兑商买 用户卖
         if (advertising.getType() == 1) {
             //广告商的需求
-            if (tokenAmount.compareTo(tradeAmount) > 0){
+            if (tokenAmount.compareTo(tradeAmount) > 0) {
                 throw new RuntimeException("订单过大，超过所需GCNY");
             }
 
             String payPwd = otcOrderInDto.getPayPwd();
-            if (!payPwd.equals(gson.getPassword())){
+            if (!payPwd.equals(gson.getPassword())) {
                 throw new RuntimeException("支付密码错误");
             }
             //下单人账户锁定币增加 币总量减少
@@ -164,6 +167,24 @@ public class OtcOrderServiceImpl implements OtcOrderService {
             otcOrder.setType((byte) 2);
             sendSellSms(advertising.getPhone());
         }
+
+        //广告类型为2 即承兑商卖 用户买
+        if (advertising.getType() == 2) {
+            //广告商剩余币数量减少
+            if (tokenAmount.compareTo(advertising.getRemainingAmount()) > 0) {
+                throw new RuntimeException("GCNY库存不足");
+            }
+            advertising.setRemainingAmount(advertising.getRemainingAmount().subtract(tokenAmount));
+            advertisingMapper.updateByPrimaryKey(advertising);
+
+            //广告商用户的锁定币增加
+            oneUserGson.setZdtlocknum(oneUserGson.getZdtlocknum().add(tokenAmount));
+            oneUserGson.setUpdatetime(new Date());
+            userGsonMapper.updateByPrimaryKey(oneUserGson);
+            //订单类型为购买
+            otcOrder.setType((byte) 1);
+        }
+
 
 
 
@@ -207,6 +228,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 向承兑商发送用户出售短信
+     *
      * @param phone
      */
     @Override
@@ -215,7 +237,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         smsSendInDto.setPhone(phone);
         smsSendInDto.setType("placeOrder");
         HashMap<String, String> dataMap = new HashMap<>(4);
-        dataMap.put("placeOrder","出售");
+        dataMap.put("placeOrder", "出售");
         smsSendInDto.setData(dataMap);
         smsService.sendSms(smsSendInDto);
     }
