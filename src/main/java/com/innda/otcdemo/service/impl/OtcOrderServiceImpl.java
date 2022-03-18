@@ -1,6 +1,8 @@
 package com.innda.otcdemo.service.impl;
 
 import com.github.pagehelper.PageInfo;
+import com.innda.otcdemo.common.enums.OrderStatus;
+import com.innda.otcdemo.common.exception.BusinessException;
 import com.innda.otcdemo.config.Common;
 import com.innda.otcdemo.dao.mapper.AdvertisingMapper;
 import com.innda.otcdemo.dao.mapper.OtcOrderMapper;
@@ -24,6 +26,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +61,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 获取唯一id
+     *
      * @return
      */
     @Override
@@ -73,8 +77,8 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         }
 
         int max = 9999;
-        if (increment > max){
-            throw new RuntimeException("生产订单号失败");
+        if (increment > max) {
+            throw new BusinessException("生产订单号失败");
         }
 
         String str = increment.toString();
@@ -84,13 +88,14 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 左补零
+     *
      * @param str
      * @param strlength
      * @return
      */
     private static String addZeroLeft(String str, int strlength) {
         int strLen = str.length();
-        if (strLen < strlength){
+        if (strLen < strlength) {
             while (strLen < strlength) {
                 StringBuffer sb = new StringBuffer();
                 //左补零
@@ -105,6 +110,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 下单
+     *
      * @param otcOrderInDto-订单入参
      * @return
      */
@@ -116,43 +122,43 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         Integer userId = Common.getUserId();
         UserGson gson = Common.getUserGson();
         //for update
-        UserGson userGson = userGsonMapper.findOneOrderByLock(userId);
+        UserGson userGson = userGsonMapper.findOneUserGsonByLock(userId);
         //获取广告信息，需要用悲观锁 for updata
         Advertising advertising = advertisingMapper.selectOneByLock(otcOrderInDto.getAdvertisingId());
-        UserGson oneUserGson = userGsonMapper.findOneOrderByLock(advertising.getUid());
-        if (userId.equals(advertising.getUid())){
-            throw new RuntimeException("不能对自己的广告进行下单操作");
+        UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(advertising.getUid());
+        if (userId.equals(advertising.getUid())) {
+            throw new BusinessException("不能对自己的广告进行下单操作");
         }
 
         //判断下单金额是否合理
         BigDecimal tradeAmount = otcOrderInDto.getTradeAmount();
-        if (tradeAmount.compareTo(advertising.getMinAmount()) < 0){
-            throw new RuntimeException("未达到下单最低限额，请调整下单金额后再试");
+        if (tradeAmount.compareTo(advertising.getMinAmount()) < 0) {
+            throw new BusinessException("未达到下单最低限额，请调整下单金额后再试");
         }
         if (tradeAmount.compareTo(advertising.getMaxAmount()) > 0) {
-            throw new RuntimeException("超过下单最高限额，请调整下单金额后再试");
+            throw new BusinessException("超过下单最高限额，请调整下单金额后再试");
         }
 
         //判断商品是否充足
         BigDecimal remainingAmount = advertising.getRemainingAmount();
         BigDecimal price = advertising.getPrice();
-        BigDecimal tokenAmount = tradeAmount.divide(price,6,BigDecimal.ROUND_HALF_UP);
+        BigDecimal tokenAmount = tradeAmount.divide(price, 6, BigDecimal.ROUND_HALF_UP);
         OtcOrder otcOrder = new OtcOrder();
 
         //广告类型为1 即承兑商买 用户卖
         if (advertising.getType() == 1) {
             //广告商的需求
-            if (tokenAmount.compareTo(tradeAmount) > 0){
-                throw new RuntimeException("订单过大，超过所需GCNY");
+            if (tokenAmount.compareTo(tradeAmount) > 0) {
+                throw new BusinessException("订单过大，超过所需GCNY");
             }
 
             String payPwd = otcOrderInDto.getPayPwd();
-            if (!payPwd.equals(gson.getPassword())){
-                throw new RuntimeException("支付密码错误");
+            if (!payPwd.equals(gson.getPassword())) {
+                throw new BusinessException("支付密码错误");
             }
             //下单人账户锁定币增加 币总量减少
             if (tokenAmount.compareTo(userGson.getZdtnum()) > 0) {
-                throw new RuntimeException("您的GCNY不足");
+                throw new BusinessException("您的GCNY不足");
             }
             userGson.setZdtlocknum(userGson.getZdtlocknum().add(tokenAmount));
             userGson.setZdtlocknum(userGson.getZdtnum().subtract(tokenAmount));
@@ -164,13 +170,133 @@ public class OtcOrderServiceImpl implements OtcOrderService {
             sendSellSms(advertising.getPhone());
         }
 
+        //广告类型为2 即承兑商卖 用户买
+        if (advertising.getType() == 2) {
+            //广告商剩余币数量减少
+            if (tokenAmount.compareTo(advertising.getRemainingAmount()) > 0) {
+                throw new BusinessException("GCNY库存不足");
+            }
+            advertising.setRemainingAmount(advertising.getRemainingAmount().subtract(tokenAmount));
+            advertisingMapper.updateByPrimaryKey(advertising);
 
+            //广告商用户的锁定币增加
+            oneUserGson.setZdtlocknum(oneUserGson.getZdtlocknum().add(tokenAmount));
+            oneUserGson.setUpdatetime(new Date());
+            userGsonMapper.updateByPrimaryKey(oneUserGson);
+            //订单类型为购买
+            otcOrder.setType((byte) 1);
+        }
 
-        return null;
+        //组装订单
+        Long orderNo = getOrderNo();
+        otcOrder.setUid(userGson.getId());
+        otcOrder.setAdvertisingUid(advertising.getUid());
+        otcOrder.setUserName(userGson.getNickname());
+        otcOrder.setAdvertisingId(otcOrderInDto.getAdvertisingId());
+        otcOrder.setOrderNo(orderNo);
+        otcOrder.setPrice(price);
+        otcOrder.setTradeAmount(tradeAmount);
+        otcOrder.setOrderAt(new Date());
+        otcOrder.setState(OrderStatus.UN_PAY.getStatus());
+        otcOrderMapper.insert(otcOrder);
+
+        return orderNo;
+
     }
 
+    /**
+     * 放行订单
+     *
+     * @param releaseOrderInDto-放行入参
+     */
     @Override
+    @Transactional(rollbackFor = BusinessException.class)
     public void releaseOrder(ReleaseOrderInDto releaseOrderInDto) {
+        Integer userId = Common.getUserId();
+
+        //查询订单消息
+        OtcOrder queryOrder = otcOrderMapper.findOneOrderByLock(releaseOrderInDto.getOrderId());
+        if (queryOrder.getState().equals(OrderStatus.RELEASE.getStatus())) {
+            throw new BusinessException("订单已放行,不能重复放行");
+        }
+
+        BigDecimal tokenAmount = queryOrder.getTokenAmount();
+        Byte type = queryOrder.getType();
+        if (type == 1) {
+            if (!userId.equals(queryOrder.getAdvertisingUid())) {
+                throw new BusinessException("没有放行权限");
+            } else {
+                if (queryOrder.getState().equals(OrderStatus.UN_PAY.getStatus())) {
+                    throw new BusinessException("订单尚未支付");
+
+                }
+
+                //for update
+                UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(userId);
+                if (!releaseOrderInDto.getPayPwd().equals(oneUserGson.getPassword())) {
+                    throw new BusinessException("支付密码错误");
+                }
+
+                //判断订单是否过期
+                if (OrderStatus.CANCEL.getStatus().equals(queryOrder.getState())) {
+                    throw new BusinessException("订单已过期");
+                }
+
+                queryOrder.setState(OrderStatus.RELEASE.getStatus());
+                queryOrder.setOrderAt(new Date());
+                otcOrderMapper.updateByPrimaryKey(queryOrder);
+
+                //type = 1 承兑商放行，承兑商锁定币减少，下单购买用户增加
+                oneUserGson.setZdtlocknum(oneUserGson.getZdtlocknum().subtract(tokenAmount));
+                oneUserGson.setUpdatetime(new Date());
+                userGsonMapper.updateByPrimaryKey(oneUserGson);
+                UserGson oneUserGsonByLock = userGsonMapper.findOneUserGsonByLock(queryOrder.getUid());
+                oneUserGsonByLock.setZdtnum(oneUserGsonByLock.getZdtnum().add(tokenAmount));
+                oneUserGsonByLock.setUpdatetime(new Date());
+                userGsonMapper.updateByPrimaryKey(oneUserGsonByLock);
+                SmsSendInDto smsSendInDto = new SmsSendInDto();
+                smsSendInDto.setPhone(oneUserGsonByLock.getUserphone());
+                smsSendInDto.setType("business");
+
+                HashMap<String, String> dataMap = new HashMap<>(4);
+                dataMap.put("orderNo", queryOrder.getOrderNo().toString());
+                smsSendInDto.setData(dataMap);
+                smsService.sendSms(smsSendInDto);
+            }
+        } else {
+            //for update
+            UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(userId);
+            if (!releaseOrderInDto.getPayPwd().equals(oneUserGson.getPassword())) {
+                throw new BusinessException("支付密码错误");
+            }
+            if (queryOrder.getState().equals(OrderStatus.UN_PAY.getStatus())) {
+                throw new BusinessException("订单尚未支付");
+            }
+
+            //判断订单是否过期
+            if (OrderStatus.CANCEL.getStatus().equals(queryOrder.getState())) {
+                throw new BusinessException("订单已过期");
+            }
+
+            queryOrder.setReleaseAt(new Date());
+            queryOrder.setState(OrderStatus.RELEASE.getStatus());
+
+            //type = 2 用户放行，用户的锁定币减少，承兑商可卖币总量减少
+            Advertising advertising = advertisingMapper.selectOneByTypeAndLock(queryOrder.getAdvertisingUid(), (byte) 2);
+            advertising.setRemainingAmount(advertising.getRemainingAmount().add(tokenAmount));
+            advertisingMapper.updateByPrimaryKey(advertising);
+            oneUserGson.setZdtlocknum(oneUserGson.getZdtlocknum().subtract(tokenAmount));
+            oneUserGson.setUpdatetime(new Date());
+            userGsonMapper.updateByPrimaryKey(oneUserGson);
+            SmsSendInDto smsSendInDto = new SmsSendInDto();
+            HashMap<String, String> dataMap = new HashMap<>(4);
+            smsSendInDto.setPhone(advertising.getPhone());
+            smsSendInDto.setType("business");
+            dataMap.put("orderNO",queryOrder.getOrderNo().toString());
+            smsSendInDto.setData(dataMap);
+            smsService.sendSms(smsSendInDto);
+
+        }
 
     }
 
@@ -204,10 +330,20 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     }
 
+    /**
+     * 向承兑商发送用户出售短信
+     *
+     * @param phone
+     */
     @Override
     public void sendSellSms(String phone) {
-        SmsSendInDto inDto = new SmsSendInDto();
-
+        SmsSendInDto smsSendInDto = new SmsSendInDto();
+        smsSendInDto.setPhone(phone);
+        smsSendInDto.setType("placeOrder");
+        HashMap<String, String> dataMap = new HashMap<>(4);
+        dataMap.put("placeOrder", "出售");
+        smsSendInDto.setData(dataMap);
+        smsService.sendSms(smsSendInDto);
     }
 
     ///**
@@ -237,7 +373,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //        record.setRemainingAmount(remainingAmount.multiply(otcOrderInDto.getTokenAmount()));
     //        advertisingMapper.updateByPrimaryKey(record);
     //    }else {
-    //        throw new RuntimeException("库存不足");
+    //        throw new BusinessException("库存不足");
     //    }
     //
     //    //组装订单
@@ -262,7 +398,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //public void releaseOrder(ReleaseOrderInDto releaseOrderInDto) {
     //    //参数校验
     //    if (releaseOrderInDto.getOrderId() == null || StringUtils.isEmpty(releaseOrderInDto.getPayPwd())) {
-    //        throw new RuntimeException("必传参数不能为空");
+    //        throw new BusinessException("必传参数不能为空");
     //    }
     //
     //    //查询订单信息
@@ -270,12 +406,12 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //    UserGson userGson = userGsonMapper.selectByPrimaryKey(queryOrder.getUid());
     //    String pwd = Md5Util.generate(releaseOrderInDto.getPayPwd());
     //    if (!userGson.getPaypassword().equals(pwd)) {
-    //        throw new RuntimeException("支付密码错误");
+    //        throw new BusinessException("支付密码错误");
     //    }
     //
     //    //判断订单是否过期
     //    if (OrderStatus.CANCEL.getStatus() == (int)queryOrder.getState()) {
-    //        throw new RuntimeException("订单已过期");
+    //        throw new BusinessException("订单已过期");
     //    }
     //
     //    OtcOrder otcOrder = new OtcOrder();
@@ -294,7 +430,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //public void cancelOrder(CancelOrderInDto cancelOrderInDto) {
     //    Integer orderId = cancelOrderInDto.getOrderId();
     //    if (orderId == null || orderId == 0) {
-    //        throw new RuntimeException("必传参数不能为空");
+    //        throw new BusinessException("必传参数不能为空");
     //    }
     //
     //    OtcOrder otcOrder = new OtcOrder();
@@ -311,12 +447,12 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //@Override
     //public void complaintOrder(ComplaintOrderInDto complaintOrderInDto) {
     //    if (complaintOrderInDto.getOrderId() == null || complaintOrderInDto.getOrderId() == 0) {
-    //        throw new RuntimeException("必传参数不能为空");
+    //        throw new BusinessException("必传参数不能为空");
     //    }
     //
     //    OtcOrder queryOrder = otcOrderMapper.selectByPrimaryKey(complaintOrderInDto.getOrderId());
     //    if (OrderStatus.CANCEL.getStatus() == (int)queryOrder.getState()){
-    //        throw new RuntimeException("订单已过期");
+    //        throw new BusinessException("订单已过期");
     //    }
     //
     //    OtcOrder otcOrder = new OtcOrder();
@@ -335,7 +471,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //@Override
     //public PageInfo<OtcOrder> getOtcOrderList(OrderSearchInDto queryOrderInDto) {
     //    if (queryOrderInDto.getUid() == null){
-    //        throw new RuntimeException("必传参数不能为空");
+    //        throw new BusinessException("必传参数不能为空");
     //    }
     //
     //    PageHelper.startPage(queryOrderInDto.getPageNum(), queryOrderInDto.getPageSize());
