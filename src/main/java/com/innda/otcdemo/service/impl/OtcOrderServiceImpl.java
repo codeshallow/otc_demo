@@ -1,6 +1,7 @@
 package com.innda.otcdemo.service.impl;
 
 import com.github.pagehelper.PageInfo;
+import com.innda.otcdemo.common.enums.OrderStatus;
 import com.innda.otcdemo.config.Common;
 import com.innda.otcdemo.dao.mapper.AdvertisingMapper;
 import com.innda.otcdemo.dao.mapper.OtcOrderMapper;
@@ -185,10 +186,21 @@ public class OtcOrderServiceImpl implements OtcOrderService {
             otcOrder.setType((byte) 1);
         }
 
+        //组装订单
+        Long orderNo = getOrderNo();
+        otcOrder.setUid(userGson.getId());
+        otcOrder.setAdvertisingUid(advertising.getUid());
+        otcOrder.setUserName(userGson.getNickname());
+        otcOrder.setAdvertisingId(otcOrderInDto.getAdvertisingId());
+        otcOrder.setOrderNo(orderNo);
+        otcOrder.setPrice(price);
+        otcOrder.setTradeAmount(tradeAmount);
+        otcOrder.setOrderAt(new Date());
+        otcOrder.setState(OrderStatus.UN_PAY.getStatus());
+        otcOrderMapper.insert(otcOrder);
 
+        return orderNo;
 
-
-        return null;
     }
 
     @Override
