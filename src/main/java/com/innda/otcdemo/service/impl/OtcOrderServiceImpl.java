@@ -203,7 +203,12 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     }
 
+    /**
+     * 放行订单
+     * @param releaseOrderInDto-放行入参
+     */
     @Override
+    @Transactional(rollbackFor = RuntimeException.class)
     public void releaseOrder(ReleaseOrderInDto releaseOrderInDto) {
 
     }
