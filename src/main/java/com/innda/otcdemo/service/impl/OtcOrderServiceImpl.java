@@ -206,6 +206,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 放行订单
+     *
      * @param releaseOrderInDto-放行入参
      */
     @Override
@@ -215,7 +216,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
         //查询订单消息
         OtcOrder queryOrder = otcOrderMapper.findOneOrderByLock(releaseOrderInDto.getOrderId());
-        if (queryOrder.getState().equals(OrderStatus.RELEASE.getStatus())){
+        if (queryOrder.getState().equals(OrderStatus.RELEASE.getStatus())) {
             throw new BusinessException("订单已放行,不能重复放行");
         }
 
@@ -224,20 +225,20 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         if (type == 1) {
             if (!userId.equals(queryOrder.getAdvertisingUid())) {
                 throw new BusinessException("没有放行权限");
-            }else {
-                if (queryOrder.getState().equals(OrderStatus.UN_PAY.getStatus())){
+            } else {
+                if (queryOrder.getState().equals(OrderStatus.UN_PAY.getStatus())) {
                     throw new BusinessException("订单尚未支付");
 
                 }
 
                 //for update
                 UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(userId);
-                if (!releaseOrderInDto.getPayPwd().equals(oneUserGson.getPassword())){
+                if (!releaseOrderInDto.getPayPwd().equals(oneUserGson.getPassword())) {
                     throw new BusinessException("支付密码错误");
                 }
 
                 //判断订单是否过期
-                if (OrderStatus.CANCEL.getStatus().equals(queryOrder.getState())){
+                if (OrderStatus.CANCEL.getStatus().equals(queryOrder.getState())) {
                     throw new BusinessException("订单已过期");
                 }
 
@@ -258,10 +259,43 @@ public class OtcOrderServiceImpl implements OtcOrderService {
                 smsSendInDto.setType("business");
 
                 HashMap<String, String> dataMap = new HashMap<>(4);
-                dataMap.put("orderNo",queryOrder.getOrderNo().toString());
+                dataMap.put("orderNo", queryOrder.getOrderNo().toString());
                 smsSendInDto.setData(dataMap);
                 smsService.sendSms(smsSendInDto);
             }
+        } else {
+            //for update
+            UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(userId);
+            if (!releaseOrderInDto.getPayPwd().equals(oneUserGson.getPassword())) {
+                throw new BusinessException("支付密码错误");
+            }
+            if (queryOrder.getState().equals(OrderStatus.UN_PAY.getStatus())) {
+                throw new BusinessException("订单尚未支付");
+            }
+
+            //判断订单是否过期
+            if (OrderStatus.CANCEL.getStatus().equals(queryOrder.getState())) {
+                throw new BusinessException("订单已过期");
+            }
+
+            queryOrder.setReleaseAt(new Date());
+            queryOrder.setState(OrderStatus.RELEASE.getStatus());
+
+            //type = 2 用户放行，用户的锁定币减少，承兑商可卖币总量减少
+            Advertising advertising = advertisingMapper.selectOneByTypeAndLock(queryOrder.getAdvertisingUid(), (byte) 2);
+            advertising.setRemainingAmount(advertising.getRemainingAmount().add(tokenAmount));
+            advertisingMapper.updateByPrimaryKey(advertising);
+            oneUserGson.setZdtlocknum(oneUserGson.getZdtlocknum().subtract(tokenAmount));
+            oneUserGson.setUpdatetime(new Date());
+            userGsonMapper.updateByPrimaryKey(oneUserGson);
+            SmsSendInDto smsSendInDto = new SmsSendInDto();
+            HashMap<String, String> dataMap = new HashMap<>(4);
+            smsSendInDto.setPhone(advertising.getPhone());
+            smsSendInDto.setType("business");
+            dataMap.put("orderNO",queryOrder.getOrderNo().toString());
+            smsSendInDto.setData(dataMap);
+            smsService.sendSms(smsSendInDto);
+
         }
 
     }
