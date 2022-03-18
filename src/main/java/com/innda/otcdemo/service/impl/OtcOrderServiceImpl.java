@@ -24,6 +24,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -204,10 +205,19 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     }
 
+    /**
+     * 向承兑商发送用户出售短信
+     * @param phone
+     */
     @Override
     public void sendSellSms(String phone) {
-
-
+        SmsSendInDto smsSendInDto = new SmsSendInDto();
+        smsSendInDto.setPhone(phone);
+        smsSendInDto.setType("placeOrder");
+        HashMap<String, String> dataMap = new HashMap<>(4);
+        dataMap.put("placeOrder","出售");
+        smsSendInDto.setData(dataMap);
+        smsService.sendSms(smsSendInDto);
     }
 
     ///**
