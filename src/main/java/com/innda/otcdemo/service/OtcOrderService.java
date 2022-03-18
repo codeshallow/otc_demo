@@ -26,7 +26,7 @@ public interface OtcOrderService {
      * @param ortoOrderInDto-订单入参
      * @return  订单号
      */
-    Long placeOrder(OtcOrderInDto ortoOrderInDto);
+    Long placeOrder(OtcOrderInDto otcOrderInDto);
 
     /**
      * 放行订单

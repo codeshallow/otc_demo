@@ -84,4 +84,22 @@
             nickName=#{nickname,jdbcType=VARCHAR}
         where id = #{id,jdbcType=INTEGER}
     </update>
+
+    <select id="findOneOrderByLock" resultMap="BaseResultMap">
+        select id,
+               userPhone,
+               voucher,
+               createTime,
+               updateTime,
+               tmpVoucher,
+               password,
+               type,
+               zdtNum,
+               zdtLockNum,
+               payPassword,
+               nickName
+        from t_user_gson
+        where id = #{id,jdbcType=INTEGER} for
+        update
+    </select>
 </mapper>

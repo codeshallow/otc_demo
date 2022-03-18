@@ -111,30 +111,30 @@
     </update>
 
     <!--根据条件分页查询订单-->
-    <select id="queryOrdersByCondition" parameterType="com.innda.otcdemo.indto.OrderSearchInDto"
-            resultMap="BaseResultMap">
-        select id,
-               uid,
-               advertising_uid,
-               user_name,
-               advertising_id,
-               pay_type_id,
-               order_no,
-               price,
-               trade_amount,
-               token_amount,
-               order_at,
-               type,
-               state,
-               pay_at,
-               release_at,
-               cancel_at,
-               complaint_at,
-               handle_at
-        from c_otc_order
-        where state = #{state,jdbcType=INTEGER}
-          and (uid = #{uid} or advertising_uid = #{uid})
-    </select>
+<!--    <select id="queryOrdersByCondition" parameterType="com.innda.otcdemo.indto.OrderSearchInDto"-->
+<!--            resultMap="BaseResultMap">-->
+<!--        select id,-->
+<!--               uid,-->
+<!--               advertising_uid,-->
+<!--               user_name,-->
+<!--               advertising_id,-->
+<!--               pay_type_id,-->
+<!--               order_no,-->
+<!--               price,-->
+<!--               trade_amount,-->
+<!--               token_amount,-->
+<!--               order_at,-->
+<!--               type,-->
+<!--               state,-->
+<!--               pay_at,-->
+<!--               release_at,-->
+<!--               cancel_at,-->
+<!--               complaint_at,-->
+<!--               handle_at-->
+<!--        from c_otc_order-->
+<!--        where state = #{state,jdbcType=INTEGER}-->
+<!--          and (uid = #{uid} or advertising_uid = #{uid})-->
+<!--    </select>-->
 
     <select id="getOrderByStatus" parameterType="java.lang.Byte" resultMap="BaseResultMap">
         select id,
