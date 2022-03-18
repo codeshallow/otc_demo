@@ -1,11 +1,14 @@
 package com.innda.otcdemo.service.impl;
 
 import com.github.pagehelper.PageInfo;
+import com.innda.otcdemo.config.Common;
 import com.innda.otcdemo.dao.mapper.AdvertisingMapper;
 import com.innda.otcdemo.dao.mapper.OtcOrderMapper;
 import com.innda.otcdemo.dao.mapper.PaymentTypeMapper;
 import com.innda.otcdemo.dao.mapper.UserGsonMapper;
+import com.innda.otcdemo.dao.model.Advertising;
 import com.innda.otcdemo.dao.model.OtcOrder;
+import com.innda.otcdemo.dao.model.UserGson;
 import com.innda.otcdemo.indto.*;
 import com.innda.otcdemo.outdto.OtcOrderDetailOutDto;
 import com.innda.otcdemo.service.OtcOrderService;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -108,6 +112,60 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     @Transactional(rollbackFor = Exception.class)
     public Long placeOrder(OtcOrderInDto otcOrderInDto) {
 
+        //获取买家信息 //获取卖家信息
+        Integer userId = Common.getUserId();
+        UserGson gson = Common.getUserGson();
+        //for update
+        UserGson userGson = userGsonMapper.findOneOrderByLock(userId);
+        //获取广告信息，需要用悲观锁 for updata
+        Advertising advertising = advertisingMapper.selectOneByLock(otcOrderInDto.getAdvertisingId());
+        UserGson oneUserGson = userGsonMapper.findOneOrderByLock(advertising.getUid());
+        if (userId.equals(advertising.getUid())){
+            throw new RuntimeException("不能对自己的广告进行下单操作");
+        }
+
+        //判断下单金额是否合理
+        BigDecimal tradeAmount = otcOrderInDto.getTradeAmount();
+        if (tradeAmount.compareTo(advertising.getMinAmount()) < 0){
+            throw new RuntimeException("未达到下单最低限额，请调整下单金额后再试");
+        }
+        if (tradeAmount.compareTo(advertising.getMaxAmount()) > 0) {
+            throw new RuntimeException("超过下单最高限额，请调整下单金额后再试");
+        }
+
+        //判断商品是否充足
+        BigDecimal remainingAmount = advertising.getRemainingAmount();
+        BigDecimal price = advertising.getPrice();
+        BigDecimal tokenAmount = tradeAmount.divide(price,6,BigDecimal.ROUND_HALF_UP);
+        OtcOrder otcOrder = new OtcOrder();
+
+        //广告类型为1 即承兑商买 用户卖
+        if (advertising.getType() == 1) {
+            //广告商的需求
+            if (tokenAmount.compareTo(tradeAmount) > 0){
+                throw new RuntimeException("订单过大，超过所需GCNY");
+            }
+
+            String payPwd = otcOrderInDto.getPayPwd();
+            if (!payPwd.equals(gson.getPassword())){
+                throw new RuntimeException("支付密码错误");
+            }
+            //下单人账户锁定币增加 币总量减少
+            if (tokenAmount.compareTo(userGson.getZdtnum()) > 0) {
+                throw new RuntimeException("您的GCNY不足");
+            }
+            userGson.setZdtlocknum(userGson.getZdtlocknum().add(tokenAmount));
+            userGson.setZdtlocknum(userGson.getZdtnum().subtract(tokenAmount));
+            userGson.setUpdatetime(new Date());
+            userGsonMapper.updateByPrimaryKey(userGson);
+
+            //订单类型为卖出
+            otcOrder.setType((byte) 2);
+            sendSellSms(advertising.getPhone());
+        }
+
+
+
         return null;
     }
 
@@ -148,6 +206,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     @Override
     public void sendSellSms(String phone) {
+
 
     }
 

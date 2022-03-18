@@ -22,4 +22,6 @@ public interface UserGsonMapper {
     int updateByPrimaryKey(UserGson record);
 
     int updatePayPassword(Integer id, String pwd);
+
+    UserGson findOneOrderByLock(Integer id);
 }
