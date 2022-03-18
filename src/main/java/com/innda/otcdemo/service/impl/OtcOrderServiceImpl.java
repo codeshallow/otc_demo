@@ -2,6 +2,7 @@ package com.innda.otcdemo.service.impl;
 
 import com.github.pagehelper.PageInfo;
 import com.innda.otcdemo.common.enums.OrderStatus;
+import com.innda.otcdemo.common.exception.BusinessException;
 import com.innda.otcdemo.config.Common;
 import com.innda.otcdemo.dao.mapper.AdvertisingMapper;
 import com.innda.otcdemo.dao.mapper.OtcOrderMapper;
@@ -210,6 +211,26 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     @Override
     @Transactional(rollbackFor = RuntimeException.class)
     public void releaseOrder(ReleaseOrderInDto releaseOrderInDto) {
+        Integer userId = Common.getUserId();
+
+        //查询订单消息
+        OtcOrder queryOrder = otcOrderMapper.findOneOrderByLock(releaseOrderInDto.getOrderId());
+        if (queryOrder.getState().equals(OrderStatus.RELEASE.getStatus())){
+            throw new RuntimeException("订单已放行,不能重复放行");
+        }
+
+        BigDecimal tokenAmount = queryOrder.getTokenAmount();
+        Byte type = queryOrder.getType();
+        if (type == 1) {
+            if (!userId.equals(queryOrder.getAdvertisingUid())) {
+                throw new RuntimeException("没有放行权限");
+            }else {
+                if (queryOrder.getState().equals(OrderStatus.UN_PAY.getStatus())){
+                    throw new BusinessException("订单尚未支付");
+
+                }
+            }
+        }
 
     }
 
