@@ -206,7 +206,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     @Override
     public void sendSellSms(String phone) {
-
+        SmsSendInDto inDto = new SmsSendInDto();
 
     }
 
