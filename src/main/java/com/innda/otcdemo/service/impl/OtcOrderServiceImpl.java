@@ -78,7 +78,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
         int max = 9999;
         if (increment > max) {
-            throw new RuntimeException("生产订单号失败");
+            throw new BusinessException("生产订单号失败");
         }
 
         String str = increment.toString();
@@ -127,16 +127,16 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         Advertising advertising = advertisingMapper.selectOneByLock(otcOrderInDto.getAdvertisingId());
         UserGson oneUserGson = userGsonMapper.findOneOrderByLock(advertising.getUid());
         if (userId.equals(advertising.getUid())) {
-            throw new RuntimeException("不能对自己的广告进行下单操作");
+            throw new BusinessException("不能对自己的广告进行下单操作");
         }
 
         //判断下单金额是否合理
         BigDecimal tradeAmount = otcOrderInDto.getTradeAmount();
         if (tradeAmount.compareTo(advertising.getMinAmount()) < 0) {
-            throw new RuntimeException("未达到下单最低限额，请调整下单金额后再试");
+            throw new BusinessException("未达到下单最低限额，请调整下单金额后再试");
         }
         if (tradeAmount.compareTo(advertising.getMaxAmount()) > 0) {
-            throw new RuntimeException("超过下单最高限额，请调整下单金额后再试");
+            throw new BusinessException("超过下单最高限额，请调整下单金额后再试");
         }
 
         //判断商品是否充足
@@ -149,16 +149,16 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         if (advertising.getType() == 1) {
             //广告商的需求
             if (tokenAmount.compareTo(tradeAmount) > 0) {
-                throw new RuntimeException("订单过大，超过所需GCNY");
+                throw new BusinessException("订单过大，超过所需GCNY");
             }
 
             String payPwd = otcOrderInDto.getPayPwd();
             if (!payPwd.equals(gson.getPassword())) {
-                throw new RuntimeException("支付密码错误");
+                throw new BusinessException("支付密码错误");
             }
             //下单人账户锁定币增加 币总量减少
             if (tokenAmount.compareTo(userGson.getZdtnum()) > 0) {
-                throw new RuntimeException("您的GCNY不足");
+                throw new BusinessException("您的GCNY不足");
             }
             userGson.setZdtlocknum(userGson.getZdtlocknum().add(tokenAmount));
             userGson.setZdtlocknum(userGson.getZdtnum().subtract(tokenAmount));
@@ -174,7 +174,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         if (advertising.getType() == 2) {
             //广告商剩余币数量减少
             if (tokenAmount.compareTo(advertising.getRemainingAmount()) > 0) {
-                throw new RuntimeException("GCNY库存不足");
+                throw new BusinessException("GCNY库存不足");
             }
             advertising.setRemainingAmount(advertising.getRemainingAmount().subtract(tokenAmount));
             advertisingMapper.updateByPrimaryKey(advertising);
@@ -209,21 +209,21 @@ public class OtcOrderServiceImpl implements OtcOrderService {
      * @param releaseOrderInDto-放行入参
      */
     @Override
-    @Transactional(rollbackFor = RuntimeException.class)
+    @Transactional(rollbackFor = BusinessException.class)
     public void releaseOrder(ReleaseOrderInDto releaseOrderInDto) {
         Integer userId = Common.getUserId();
 
         //查询订单消息
         OtcOrder queryOrder = otcOrderMapper.findOneOrderByLock(releaseOrderInDto.getOrderId());
         if (queryOrder.getState().equals(OrderStatus.RELEASE.getStatus())){
-            throw new RuntimeException("订单已放行,不能重复放行");
+            throw new BusinessException("订单已放行,不能重复放行");
         }
 
         BigDecimal tokenAmount = queryOrder.getTokenAmount();
         Byte type = queryOrder.getType();
         if (type == 1) {
             if (!userId.equals(queryOrder.getAdvertisingUid())) {
-                throw new RuntimeException("没有放行权限");
+                throw new BusinessException("没有放行权限");
             }else {
                 if (queryOrder.getState().equals(OrderStatus.UN_PAY.getStatus())){
                     throw new BusinessException("订单尚未支付");
@@ -307,7 +307,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //        record.setRemainingAmount(remainingAmount.multiply(otcOrderInDto.getTokenAmount()));
     //        advertisingMapper.updateByPrimaryKey(record);
     //    }else {
-    //        throw new RuntimeException("库存不足");
+    //        throw new BusinessException("库存不足");
     //    }
     //
     //    //组装订单
@@ -332,7 +332,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //public void releaseOrder(ReleaseOrderInDto releaseOrderInDto) {
     //    //参数校验
     //    if (releaseOrderInDto.getOrderId() == null || StringUtils.isEmpty(releaseOrderInDto.getPayPwd())) {
-    //        throw new RuntimeException("必传参数不能为空");
+    //        throw new BusinessException("必传参数不能为空");
     //    }
     //
     //    //查询订单信息
@@ -340,12 +340,12 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //    UserGson userGson = userGsonMapper.selectByPrimaryKey(queryOrder.getUid());
     //    String pwd = Md5Util.generate(releaseOrderInDto.getPayPwd());
     //    if (!userGson.getPaypassword().equals(pwd)) {
-    //        throw new RuntimeException("支付密码错误");
+    //        throw new BusinessException("支付密码错误");
     //    }
     //
     //    //判断订单是否过期
     //    if (OrderStatus.CANCEL.getStatus() == (int)queryOrder.getState()) {
-    //        throw new RuntimeException("订单已过期");
+    //        throw new BusinessException("订单已过期");
     //    }
     //
     //    OtcOrder otcOrder = new OtcOrder();
@@ -364,7 +364,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //public void cancelOrder(CancelOrderInDto cancelOrderInDto) {
     //    Integer orderId = cancelOrderInDto.getOrderId();
     //    if (orderId == null || orderId == 0) {
-    //        throw new RuntimeException("必传参数不能为空");
+    //        throw new BusinessException("必传参数不能为空");
     //    }
     //
     //    OtcOrder otcOrder = new OtcOrder();
@@ -381,12 +381,12 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //@Override
     //public void complaintOrder(ComplaintOrderInDto complaintOrderInDto) {
     //    if (complaintOrderInDto.getOrderId() == null || complaintOrderInDto.getOrderId() == 0) {
-    //        throw new RuntimeException("必传参数不能为空");
+    //        throw new BusinessException("必传参数不能为空");
     //    }
     //
     //    OtcOrder queryOrder = otcOrderMapper.selectByPrimaryKey(complaintOrderInDto.getOrderId());
     //    if (OrderStatus.CANCEL.getStatus() == (int)queryOrder.getState()){
-    //        throw new RuntimeException("订单已过期");
+    //        throw new BusinessException("订单已过期");
     //    }
     //
     //    OtcOrder otcOrder = new OtcOrder();
@@ -405,7 +405,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     //@Override
     //public PageInfo<OtcOrder> getOtcOrderList(OrderSearchInDto queryOrderInDto) {
     //    if (queryOrderInDto.getUid() == null){
-    //        throw new RuntimeException("必传参数不能为空");
+    //        throw new BusinessException("必传参数不能为空");
     //    }
     //
     //    PageHelper.startPage(queryOrderInDto.getPageNum(), queryOrderInDto.getPageSize());
