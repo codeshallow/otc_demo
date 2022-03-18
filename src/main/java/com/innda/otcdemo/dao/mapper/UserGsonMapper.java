@@ -23,5 +23,5 @@ public interface UserGsonMapper {
 
     int updatePayPassword(Integer id, String pwd);
 
-    UserGson findOneOrderByLock(Integer id);
+    UserGson findOneUserGsonByLock(Integer id);
 }

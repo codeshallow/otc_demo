@@ -85,7 +85,7 @@
         where id = #{id,jdbcType=INTEGER}
     </update>
 
-    <select id="findOneOrderByLock" resultMap="BaseResultMap">
+    <select id="findOneUserGsonByLock" resultMap="BaseResultMap">
         select id,
                userPhone,
                voucher,

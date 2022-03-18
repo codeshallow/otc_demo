@@ -122,10 +122,10 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         Integer userId = Common.getUserId();
         UserGson gson = Common.getUserGson();
         //for update
-        UserGson userGson = userGsonMapper.findOneOrderByLock(userId);
+        UserGson userGson = userGsonMapper.findOneUserGsonByLock(userId);
         //获取广告信息，需要用悲观锁 for updata
         Advertising advertising = advertisingMapper.selectOneByLock(otcOrderInDto.getAdvertisingId());
-        UserGson oneUserGson = userGsonMapper.findOneOrderByLock(advertising.getUid());
+        UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(advertising.getUid());
         if (userId.equals(advertising.getUid())) {
             throw new BusinessException("不能对自己的广告进行下单操作");
         }
@@ -228,6 +228,12 @@ public class OtcOrderServiceImpl implements OtcOrderService {
                 if (queryOrder.getState().equals(OrderStatus.UN_PAY.getStatus())){
                     throw new BusinessException("订单尚未支付");
 
+                }
+
+                //for update
+                UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(userId);
+                if (!releaseOrderInDto.getPayPwd().equals(oneUserGson.getPassword())){
+                    throw new BusinessException("支付密码错误");
                 }
             }
         }
