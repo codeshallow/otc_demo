@@ -292,7 +292,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
             HashMap<String, String> dataMap = new HashMap<>(4);
             smsSendInDto.setPhone(advertising.getPhone());
             smsSendInDto.setType("business");
-            dataMap.put("orderNO",queryOrder.getOrderNo().toString());
+            dataMap.put("orderNO", queryOrder.getOrderNo().toString());
             smsSendInDto.setData(dataMap);
             smsService.sendSms(smsSendInDto);
 
@@ -301,8 +301,15 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     }
 
+    /**
+     * 取消订单
+     *
+     * @param cancelOrderInDto
+     */
     @Override
+    @Transactional(rollbackFor = RuntimeException.class)
     public void cancelOrder(CancelOrderInDto cancelOrderInDto) {
+
 
     }
 
