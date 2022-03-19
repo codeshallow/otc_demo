@@ -309,6 +309,36 @@ public class OtcOrderServiceImpl implements OtcOrderService {
     @Override
     @Transactional(rollbackFor = RuntimeException.class)
     public void cancelOrder(CancelOrderInDto cancelOrderInDto) {
+        Integer orderId = cancelOrderInDto.getOrderId();
+        OtcOrder otcOrder = otcOrderMapper.findOneOrderByLock(orderId);
+
+        if (otcOrder == null) {
+            throw new BusinessException("订单不存在");
+        }
+
+        if (otcOrder.getState().equals(OrderStatus.CANCEL.getStatus())) {
+            throw new BusinessException("订单已取消，不能重复取消");
+        }
+
+        UserGson userGson = Common.getUserGson();
+        Integer userId;
+
+        if (userGson != null) {
+            userId = userGson.getId();
+        } else {
+            userId = otcOrder.getUid();
+        }
+
+        BigDecimal tokenAmount = otcOrder.getTokenAmount();
+        if (!userId.equals(otcOrder.getUid())) {
+            throw new BusinessException("订单出错");
+        }
+
+        if (otcOrder.getState().equals(OrderStatus.COMPLAIN.getStatus())) {
+            throw new BusinessException("订单申诉中，不能取消");
+        }
+
+        //取消购买ZDT
 
 
     }
