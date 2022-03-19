@@ -339,7 +339,31 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         }
 
         //取消购买ZDT
+        if (otcOrder.getType() == 1){
+            UserGson adUserGson = userGsonMapper.findOneUserGsonByLock(otcOrder.getAdvertisingUid());
+            adUserGson.setZdtlocknum(adUserGson.getZdtlocknum().subtract(tokenAmount));
+            adUserGson.setUpdatetime(new Date());
+            userGsonMapper.updateByPrimaryKey(adUserGson);
 
+            otcOrder.setState(OrderStatus.CANCEL.getStatus());
+            otcOrder.setCancelAt(new Date());
+            otcOrderMapper.updateByPrimaryKey(otcOrder);
+
+            Advertising advertising = advertisingMapper.selectOneByLock(otcOrder.getAdvertisingId());
+            advertising.setRemainingAmount(advertising.getRemainingAmount().add(tokenAmount));
+            advertisingMapper.updateByPrimaryKey(advertising);
+        }else {
+            UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(userId);
+            oneUserGson.setZdtlocknum(oneUserGson.getZdtlocknum().add(tokenAmount));
+            oneUserGson.setUpdatetime(new Date());
+            userGsonMapper.updateByPrimaryKey(oneUserGson);
+            //Advertising advertising = advertisingMapper.selectOneByLock(otcOrder.getAdvertisingId());
+            //advertising.setRemainingAmount(advertising.getRemainingAmount().add(tokenAmount));
+            //advertisingMapper.updateByPrimaryKey(advertising);
+            otcOrder.setState(OrderStatus.CANCEL.getStatus());
+            otcOrder.setCancelAt(new Date());
+            otcOrderMapper.updateByPrimaryKey(otcOrder);
+        }
 
     }
 
