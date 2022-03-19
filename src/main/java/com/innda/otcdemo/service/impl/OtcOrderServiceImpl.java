@@ -367,9 +367,32 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     }
 
+    /**
+     * 申诉订单
+     * @param complaintOrderInDto
+     */
     @Override
     public void complaintOrder(ComplaintOrderInDto complaintOrderInDto) {
+        Integer userId = Common.getUserId();
 
+        //判断订单是否过期
+        OtcOrder queryOrder = otcOrderMapper.findOneOrderByLock(complaintOrderInDto.getOrderId());
+        if (queryOrder.getState().equals(OrderStatus.COMPLAIN.getStatus())){
+            throw new BusinessException("订单申诉中");
+        }
+
+        if (userId.equals(queryOrder.getAdvertisingUid()) || userId.equals(queryOrder.getUid())){
+            if (OrderStatus.CANCEL.getStatus().equals(queryOrder.getState())) {
+                throw new BusinessException("订单已过期");
+            }
+
+            queryOrder.setState(OrderStatus.COMPLAIN.getStatus());
+            queryOrder.setComplaintAt(new Date());
+            otcOrderMapper.updateByPrimaryKey(queryOrder);
+
+        }else {
+            throw new BusinessException("没有申诉权限");
+        }
     }
 
     @Override
