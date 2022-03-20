@@ -31,4 +31,9 @@ public class OtcOrderOutDto {
      * 类型  1 是自己发布得广告 2 不是
      */
     private Byte ownPubAdvertising;
+
+    /**
+     * 订单号
+     */
+    private Long orderNo;
 }

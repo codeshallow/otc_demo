@@ -1,9 +1,9 @@
 package com.innda.otcdemo.service;
 
-import com.github.pagehelper.PageInfo;
 import com.innda.otcdemo.dao.model.OtcOrder;
 import com.innda.otcdemo.indto.*;
 import com.innda.otcdemo.outdto.OtcOrderDetailOutDto;
+import com.innda.otcdemo.outdto.OtcOrderOutDto;
 
 import java.util.List;
 
@@ -52,7 +52,7 @@ public interface OtcOrderService {
      *
      * @return 订单明细
      */
-    PageInfo<OtcOrder> getOtcOrderList(OrderSearchInDto orderSearchInDto);
+    List<OtcOrderOutDto> getOtcOrderList(OrderSearchInDto orderSearchInDto);
 
     /**
      * 获取订单详情

@@ -1,6 +1,6 @@
 package com.innda.otcdemo.service.impl;
 
-import com.github.pagehelper.PageInfo;
+import com.github.pagehelper.PageHelper;
 import com.innda.otcdemo.common.enums.OrderStatus;
 import com.innda.otcdemo.common.exception.BusinessException;
 import com.innda.otcdemo.config.Common;
@@ -13,6 +13,7 @@ import com.innda.otcdemo.dao.model.OtcOrder;
 import com.innda.otcdemo.dao.model.UserGson;
 import com.innda.otcdemo.indto.*;
 import com.innda.otcdemo.outdto.OtcOrderDetailOutDto;
+import com.innda.otcdemo.outdto.OtcOrderOutDto;
 import com.innda.otcdemo.service.OtcOrderService;
 import com.innda.otcdemo.service.SmsService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -339,7 +341,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         }
 
         //取消购买ZDT
-        if (otcOrder.getType() == 1){
+        if (otcOrder.getType() == 1) {
             UserGson adUserGson = userGsonMapper.findOneUserGsonByLock(otcOrder.getAdvertisingUid());
             adUserGson.setZdtlocknum(adUserGson.getZdtlocknum().subtract(tokenAmount));
             adUserGson.setUpdatetime(new Date());
@@ -352,7 +354,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
             Advertising advertising = advertisingMapper.selectOneByLock(otcOrder.getAdvertisingId());
             advertising.setRemainingAmount(advertising.getRemainingAmount().add(tokenAmount));
             advertisingMapper.updateByPrimaryKey(advertising);
-        }else {
+        } else {
             UserGson oneUserGson = userGsonMapper.findOneUserGsonByLock(userId);
             oneUserGson.setZdtlocknum(oneUserGson.getZdtlocknum().add(tokenAmount));
             oneUserGson.setUpdatetime(new Date());
@@ -369,6 +371,7 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
     /**
      * 申诉订单
+     *
      * @param complaintOrderInDto
      */
     @Override
@@ -377,11 +380,11 @@ public class OtcOrderServiceImpl implements OtcOrderService {
 
         //判断订单是否过期
         OtcOrder queryOrder = otcOrderMapper.findOneOrderByLock(complaintOrderInDto.getOrderId());
-        if (queryOrder.getState().equals(OrderStatus.COMPLAIN.getStatus())){
+        if (queryOrder.getState().equals(OrderStatus.COMPLAIN.getStatus())) {
             throw new BusinessException("订单申诉中");
         }
 
-        if (userId.equals(queryOrder.getAdvertisingUid()) || userId.equals(queryOrder.getUid())){
+        if (userId.equals(queryOrder.getAdvertisingUid()) || userId.equals(queryOrder.getUid())) {
             if (OrderStatus.CANCEL.getStatus().equals(queryOrder.getState())) {
                 throw new BusinessException("订单已过期");
             }
@@ -390,14 +393,58 @@ public class OtcOrderServiceImpl implements OtcOrderService {
             queryOrder.setComplaintAt(new Date());
             otcOrderMapper.updateByPrimaryKey(queryOrder);
 
-        }else {
+        } else {
             throw new BusinessException("没有申诉权限");
         }
     }
 
+    /**
+     * h获取订单列表
+     *
+     * @param queryOrderInDto - 1 待处理 2 已完成
+     * @return
+     */
     @Override
-    public PageInfo<OtcOrder> getOtcOrderList(OrderSearchInDto orderSearchInDto) {
-        return null;
+    public List<OtcOrderOutDto> getOtcOrderList(OrderSearchInDto queryOrderInDto) {
+        UserGson userGson = Common.getUserGson();
+        Integer userGsonId = userGson.getId();
+        List<OtcOrderOutDto> outDtoList = new ArrayList<>();
+        List<Byte> states = new ArrayList<>(3);
+        if (queryOrderInDto.getType() == 1) {
+            states.add(OrderStatus.UN_PAY.getStatus());
+            states.add(OrderStatus.PAY.getStatus());
+            states.add(OrderStatus.COMPLAIN.getStatus());
+        } else {
+            states.add(OrderStatus.RELEASE.getStatus());
+            states.add(OrderStatus.CANCEL.getStatus());
+            states.add(OrderStatus.HANDLE.getStatus());
+        }
+        PageHelper.startPage(queryOrderInDto.getPageNum(), queryOrderInDto.getPageSize());
+        List<OtcOrder> otcOrders = otcOrderMapper.selectByUidAndState(userGsonId, states);
+        outDtoList = orders2OutDtos(otcOrders, outDtoList, userGsonId);
+        return outDtoList;
+
+
+    }
+
+    private List<OtcOrderOutDto> orders2OutDtos(List<OtcOrder> orders, List<OtcOrderOutDto> outDtoList, Integer uid) {
+        if (orders != null && orders.size() > 0) {
+            for (OtcOrder otcorder : orders) {
+                OtcOrderOutDto outDto = new OtcOrderOutDto();
+                if (uid.equals(otcorder.getAdvertisingUid())) {
+                    outDto.setOwnPubAdvertising((byte) 1);
+                } else {
+                    outDto.setOwnPubAdvertising((byte) 2);
+                }
+                outDto.setId(otcorder.getId());
+                outDto.setState(otcorder.getState());
+                outDto.setType(otcorder.getType());
+                outDto.setUserName(otcorder.getUserName());
+                outDto.setOrderNo(otcorder.getOrderNo());
+                outDtoList.add(outDto);
+            }
+        }
+        return outDtoList;
     }
 
     @Override
