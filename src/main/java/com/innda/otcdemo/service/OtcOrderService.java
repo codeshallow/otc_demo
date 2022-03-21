@@ -60,7 +60,7 @@ public interface OtcOrderService {
      * @param orderId
      * @return
      */
-    OtcOrderDetailOutDto getOtcOrderDetail(Long orderId);
+    OtcOrderDetailOutDto getOtcOrderDetail(Long orderNo);
 
     /**
      * 根据订单状态查询订单

@@ -10,13 +10,16 @@ import com.innda.otcdemo.dao.mapper.PaymentTypeMapper;
 import com.innda.otcdemo.dao.mapper.UserGsonMapper;
 import com.innda.otcdemo.dao.model.Advertising;
 import com.innda.otcdemo.dao.model.OtcOrder;
+import com.innda.otcdemo.dao.model.PaymentType;
 import com.innda.otcdemo.dao.model.UserGson;
 import com.innda.otcdemo.indto.*;
 import com.innda.otcdemo.outdto.OtcOrderDetailOutDto;
 import com.innda.otcdemo.outdto.OtcOrderOutDto;
+import com.innda.otcdemo.outdto.PaymentTypeOutDto;
 import com.innda.otcdemo.service.OtcOrderService;
 import com.innda.otcdemo.service.SmsService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.support.atomic.RedisAtomicLong;
@@ -447,20 +450,145 @@ public class OtcOrderServiceImpl implements OtcOrderService {
         return outDtoList;
     }
 
+    /**
+     * 获取订单详情
+     *
+     * @param orderNo
+     * @return
+     */
     @Override
-    public OtcOrderDetailOutDto getOtcOrderDetail(Long orderId) {
-        return null;
+    public OtcOrderDetailOutDto getOtcOrderDetail(Long orderNo) {
+        if (orderNo == null || orderNo == 0) {
+            return null;
+        }
+        Integer userId = Common.getUserId();
+
+        OtcOrder otcOrder = otcOrderMapper.selectByOrderNo(orderNo);
+        OtcOrderDetailOutDto otcOrderDetailOutDto = null;
+
+        if (orderNo != null) {
+            otcOrderDetailOutDto = new OtcOrderDetailOutDto();
+            Date orderAt = otcOrder.getOrderAt();
+            long countDown = (orderAt.getTime() + 30 * 60 * 1000) - System.currentTimeMillis();
+            BeanUtils.copyProperties(otcOrder, otcOrderDetailOutDto);
+            otcOrderDetailOutDto.setCountdown(countDown);
+
+            PaymentType paymentType = paymentTypeMapper.selectByPrimaryKey(otcOrder.getPayTypeId());
+            PaymentTypeOutDto paymentTypeOutDto = new PaymentTypeOutDto();
+            if (paymentType != null) {
+                BeanUtils.copyProperties(paymentType, paymentTypeOutDto);
+            }
+
+            UserGson userGson;
+            List<PaymentTypeOutDto> paymentTypeList;
+
+            if (userId.equals(otcOrder.getUid())) {
+                List<PaymentType> paymentTypes = paymentTypeMapper.selectByUid(otcOrder.getAdvertisingUid());
+                userGson = userGsonMapper.selectByPrimaryKey(otcOrder.getAdvertisingUid());
+                paymentTypeList = getPaymentTypeList(paymentTypes, paymentType, paymentTypeOutDto);
+
+            } else {
+                List<PaymentType> paymentTypes = paymentTypeMapper.selectByUid(otcOrder.getUid());
+                userGson = userGsonMapper.selectByPrimaryKey(otcOrder.getUid());
+                paymentTypeList = getPaymentTypeList(paymentTypes, paymentType, paymentTypeOutDto);
+            }
+
+            otcOrderDetailOutDto.setPaymentType(paymentTypeOutDto);
+            otcOrderDetailOutDto.setPaymentTypeList(paymentTypeList);
+            otcOrderDetailOutDto.setPhoneNum(userGson.getUserphone());
+
+        }
+
+
+        return otcOrderDetailOutDto;
     }
 
+    private List<PaymentTypeOutDto> getPaymentTypeList(List<PaymentType> paymentTypes, PaymentType paymentType, PaymentTypeOutDto paymentTypeOutDto) {
+        List<PaymentTypeOutDto> paymentTypeList = new ArrayList<>();
+        if (paymentTypes != null && paymentTypes.size() > 0) {
+            for (PaymentType type : paymentTypes) {
+                if (paymentType == null) {
+                    BeanUtils.copyProperties(type, paymentTypeOutDto);
+                }
+                PaymentTypeOutDto outDto = new PaymentTypeOutDto();
+                BeanUtils.copyProperties(type, outDto);
+                paymentTypeList.add(outDto);
+            }
+
+        }
+        return paymentTypeList;
+
+    }
+
+    /**
+     * 根据订单状态查询订单
+     *
+     * @param status
+     * @return
+     */
     @Override
     public List<OtcOrder> getOrderByStatus(Byte status) {
-        return null;
+        List<OtcOrder> orderByStatus = otcOrderMapper.getOrderByStatus(status);
+
+        return orderByStatus;
     }
 
+    /**
+     * 用户确认付款
+     *
+     * @param orderId
+     */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void confirmTransferces(Integer orderId) {
 
+        Integer userId = Common.getUserId();
+        OtcOrder otcOrder = otcOrderMapper.findOneOrderByLock(orderId);
+        Advertising advertising = advertisingMapper.selectByPrimaryKey(otcOrder.getAdvertisingId());
+
+        if (otcOrder == null) {
+            throw new BusinessException("订单不存在");
+        }
+        if (otcOrder.getState().equals(OrderStatus.PAY.getStatus())) {
+            throw new BusinessException("订单已确认");
+        }
+        Byte type = otcOrder.getType();
+        if (type == 1) {
+            if (!userId.equals(otcOrder.getUid())) {
+                throw new BusinessException("没有确认权限");
+            }
+        } else {
+            if (userId.equals(otcOrder.getAdvertisingUid())) {
+                throw new BusinessException("没有确认权限");
+            }
+        }
+
+        otcOrder.setState(OrderStatus.PAY.getStatus());
+        otcOrder.setOrderAt(new Date());
+        otcOrderMapper.updateByPrimaryKey(otcOrder);
+        HashMap<String, String> dataMap = new HashMap<>(4);
+
+        if (userId.equals(otcOrder.getUid())) {
+            dataMap.put("orderType","购买");
+            sendConfirmSms("placeOrder",advertising.getPhone(),dataMap);
+        }
+
+        if (userId.equals(otcOrder.getAdvertisingUid())){
+            dataMap.put("orderNo",otcOrder.getOrderNo().toString());
+            UserGson userGson = userGsonMapper.selectByPrimaryKey(otcOrder.getUid());
+            sendConfirmSms("releaseOrder",userGson.getUserphone(),dataMap);
+        }
+
     }
+
+    private void sendConfirmSms(String type,String phone,HashMap<String,String> map) {
+        SmsSendInDto smsSendInDto = new SmsSendInDto();
+        smsSendInDto.setType(type);
+        smsSendInDto.setPhone(phone);
+        smsSendInDto.setData(map);
+        smsService.sendSms(smsSendInDto);
+    }
+
 
     /**
      * 向承兑商发送用户出售短信

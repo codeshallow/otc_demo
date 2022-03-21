@@ -68,4 +68,9 @@ public class OtcOrderDetailOutDto {
      * 支付列表
      */
     private List<PaymentTypeOutDto> paymentTypeList;
+
+    /**
+     * 电话号码
+     */
+    private String phoneNum;
 }
