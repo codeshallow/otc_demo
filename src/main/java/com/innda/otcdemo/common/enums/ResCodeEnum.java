@@ -13,7 +13,7 @@ public enum ResCodeEnum {
     ERROR(-1,"系统繁忙"),
     TOKEN_ERROR(2105,"token异常"),
     BODY_ERROR(401,"数据解析异常"),
-    NOT_FOUND(404,"数据解析异常");
+    NOT_FUND(404,"数据解析异常");
 
     private int code;
     private String msg;

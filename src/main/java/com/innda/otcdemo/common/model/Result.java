@@ -1,6 +1,7 @@
 package com.innda.otcdemo.common.model;
 
 import com.innda.otcdemo.common.enums.ResCodeEnum;
+import lombok.Data;
 
 /**
  * @author qianyu
@@ -8,6 +9,7 @@ import com.innda.otcdemo.common.enums.ResCodeEnum;
  * @Package com.innda.otcdemo.common
  * @date 2022/3/7 20:44
  */
+@Data
 public class Result {
 
     private int status;
