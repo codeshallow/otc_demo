@@ -28,6 +28,7 @@ public class HttpAspect {
     private Map<String, Object> requestMap = new HashMap<>();
     private boolean isClear;
 
+    //实验acess key
 
     @Pointcut("execution(public *  cn.iinda.otc.controller.*.*(..))")
     public void log() {
