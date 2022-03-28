@@ -1,5 +1,6 @@
 package com.innda.otcdemo.controller;
 
+import cn.iinda.validator.constraints.UserLoginToken;
 import com.innda.otcdemo.common.model.Result;
 import com.innda.otcdemo.config.Common;
 import com.innda.otcdemo.indto.PaymentTypeInDto;
@@ -56,8 +57,8 @@ public class PaymentTypeController {
      */
     @PostMapping("/down")
     @UserLoginToken
-    public Result down(@RequestBody paymentTypeInDto paymentTypeInDto){
-        paymentTypeService.down(paymentTypeInDto);
+    public Result down(@RequestBody PaymentTypeInDto paymentTypeInDto){
+        paymentTypeService.down(paymentTypeInDto.getId());
         return Result.ok();
     }
 

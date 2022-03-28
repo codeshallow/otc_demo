@@ -1,5 +1,6 @@
 package com.innda.otcdemo.controller;
 
+import cn.iinda.validator.constraints.UserLoginToken;
 import com.innda.otcdemo.common.model.Result;
 import com.innda.otcdemo.config.Common;
 import com.innda.otcdemo.indto.ResetPwdInDto;
@@ -30,7 +31,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/reset_pwd_send_sms")
-    @UserloginToken
+    @UserLoginToken
     public Result resetPwdSendSms(){
         userService.resetPwdSendSms();
         return Result.ok();

@@ -1,5 +1,6 @@
 package com.innda.otcdemo.controller;
 
+import cn.iinda.validator.constraints.UserLoginToken;
 import com.innda.otcdemo.common.model.Result;
 import com.innda.otcdemo.config.Common;
 import com.innda.otcdemo.indto.AdvertisingTypeInDto;
@@ -27,7 +28,7 @@ public class AdvertistingController {
     private AdvertistingService advertistingService;
 
     @GetMapping("list")
-    @UserloginToken
+    @UserLoginToken
     public Result getAdvertisingList(@Valid AdvertisingTypeInDto advertisingTypeInDto) {
         List<AdvertistingOutDto> advertistingList = advertistingService.getAdvertistingList(advertisingTypeInDto.getType());
         return Result.ok(advertistingList);
